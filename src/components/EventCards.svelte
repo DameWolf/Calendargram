@@ -112,20 +112,34 @@
           </div>
 
           <!-- Card Visual Banner -->
-          <div class="card-banner" style="background: {getColor(event)}">
-            <div class="banner-content">
-              <span class="banner-emoji">{event.emoji || '📅'}</span>
-              {#if event.time}
-                <div class="banner-time">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                  </svg>
-                  <span>{formatTime(event.time)}</span>
-                </div>
-              {/if}
+          {#if event.photo}
+            <div class="card-banner card-banner-photo" style="background: url('{event.photo}') center/cover no-repeat">
+              <div class="photo-banner-overlay">
+                {#if event.time}
+                  <div class="banner-time">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>{formatTime(event.time)}</span>
+                  </div>
+                {/if}
+              </div>
             </div>
-          </div>
+          {:else}
+            <div class="card-banner" style="background: {getColor(event)}">
+              <div class="banner-content">
+                <span class="banner-emoji">{event.emoji || '📅'}</span>
+                {#if event.time}
+                  <div class="banner-time">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>{formatTime(event.time)}</span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          {/if}
 
           <!-- Card Body -->
           <div class="card-body">
@@ -321,12 +335,25 @@
 
   .card-banner {
     width: 100%;
-    height: 140px;
+    height: 160px;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: hidden;
+  }
+
+  .card-banner-photo {
+    height: 200px;
+  }
+
+  .photo-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 50%);
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
   }
 
   .banner-content {

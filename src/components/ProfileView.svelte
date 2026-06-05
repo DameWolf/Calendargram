@@ -93,8 +93,15 @@
   {:else}
     <div class="events-grid">
       {#each recentEvents as event, i}
-        <div class="grid-item" style="background: {event.color || COLORS[i % COLORS.length]}">
-          <span class="grid-emoji">{event.emoji || '📅'}</span>
+        <div
+          class="grid-item"
+          style={event.photo
+            ? `background: url('${event.photo}') center/cover no-repeat`
+            : `background: ${event.color || COLORS[i % COLORS.length]}`}
+        >
+          {#if !event.photo}
+            <span class="grid-emoji">{event.emoji || '📅'}</span>
+          {/if}
           <div class="grid-overlay">
             <span class="grid-title">{event.title}</span>
             <span class="grid-date">{event.date.slice(5).replace('-', '/')}</span>

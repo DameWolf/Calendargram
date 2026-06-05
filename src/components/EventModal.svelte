@@ -26,6 +26,8 @@
   let tagsInput = '';
   let emojiPickerOpen = false;
   let errors = {};
+  let photoDataUrl = null;  // base64 photo preview
+  let photoInputEl;         // hidden file input ref
 
   $: if (show) {
     if (editEvent) {
@@ -36,6 +38,7 @@
       emoji = editEvent.emoji || '📅';
       color = editEvent.color || COLORS[0].bg;
       tagsInput = (editEvent.tags || []).join(', ');
+      photoDataUrl = editEvent.photo || null;
     } else {
       title = '';
       date = defaultDate || new Date().toISOString().split('T')[0];
@@ -44,9 +47,23 @@
       emoji = '📅';
       color = COLORS[0].bg;
       tagsInput = '';
+      photoDataUrl = null;
     }
     errors = {};
     emojiPickerOpen = false;
+  }
+
+  function handlePhotoChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { photoDataUrl = ev.target.result; };
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    photoDataUrl = null;
+    if (photoInputEl) photoInputEl.value = '';
   }
 
   function validate() {
@@ -68,6 +85,7 @@
       emoji,
       color,
       tags,
+      photo: photoDataUrl || null,
     };
     dispatch('save', eventData);
   }
@@ -104,18 +122,74 @@
       </div>
 
       <!-- Preview Banner -->
-      <div class="preview-banner" style="background: {color}">
-        <span class="preview-emoji">{emoji}</span>
-        <div class="preview-info">
-          <span class="preview-title">{title || 'Event Title'}</span>
-          {#if time}
-            <span class="preview-time">{time}</span>
-          {/if}
-        </div>
+      <div
+        class="preview-banner"
+        style={photoDataUrl ? `background: url('${photoDataUrl}') center/cover no-repeat` : `background: ${color}`}
+      >
+        {#if photoDataUrl}
+          <div class="photo-overlay">
+            <div class="preview-info">
+              <span class="preview-title">{title || 'Event Title'}</span>
+              {#if time}<span class="preview-time">{time}</span>{/if}
+            </div>
+          </div>
+        {:else}
+          <span class="preview-emoji">{emoji}</span>
+          <div class="preview-info">
+            <span class="preview-title">{title || 'Event Title'}</span>
+            {#if time}<span class="preview-time">{time}</span>{/if}
+          </div>
+        {/if}
       </div>
 
       <!-- Form -->
       <div class="modal-body">
+        <!-- Photo Upload -->
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <!-- Hidden file input: accepts images from camera OR gallery -->
+          <input
+            bind:this={photoInputEl}
+            id="input-photo"
+            type="file"
+            accept="image/*"
+            style="display:none"
+            on:change={handlePhotoChange}
+          />
+          {#if photoDataUrl}
+            <div class="photo-preview-wrap">
+              <img src={photoDataUrl} alt="Event photo preview" class="photo-preview-img" />
+              <div class="photo-preview-actions">
+                <button class="photo-action-btn" on:click={() => photoInputEl.click()} id="btn-change-photo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                  Change
+                </button>
+                <button class="photo-action-btn remove" on:click={removePhoto} id="btn-remove-photo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                  Remove
+                </button>
+              </div>
+            </div>
+          {:else}
+            <div class="photo-upload-zone" on:click={() => photoInputEl.click()} role="button" tabindex="0"
+              on:keydown={(e) => e.key === 'Enter' && photoInputEl.click()}>
+              <div class="photo-upload-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+              <span class="photo-upload-label">Tap to add a photo</span>
+              <span class="photo-upload-sub">Camera or Gallery</span>
+            </div>
+          {/if}
+        </div>
+
         <!-- Emoji Picker -->
         <div class="form-group">
           <label class="form-label">Emoji</label>
@@ -501,5 +575,98 @@
   .color-dot.active {
     transform: scale(1.1);
     box-shadow: 0 0 0 3px var(--bg-secondary), 0 0 0 5px white;
+  }
+
+  /* Photo Upload */
+  .photo-upload-zone {
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all var(--transition);
+    background: var(--bg-input);
+  }
+
+  .photo-upload-zone:hover {
+    border-color: var(--accent-pink);
+    background: rgba(221, 42, 123, 0.05);
+  }
+
+  .photo-upload-icon {
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .photo-upload-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .photo-upload-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Photo Preview */
+  .photo-preview-wrap {
+    position: relative;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1.5px solid var(--border-color);
+  }
+
+  .photo-preview-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .photo-preview-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    background: rgba(0,0,0,0.6);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    backdrop-filter: blur(4px);
+  }
+
+  .photo-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+    background: rgba(255,255,255,0.15);
+    border-radius: var(--radius-full);
+    padding: 5px 12px;
+    transition: background var(--transition);
+  }
+
+  .photo-action-btn:hover {
+    background: rgba(255,255,255,0.25);
+  }
+
+  .photo-action-btn.remove:hover {
+    background: rgba(231, 76, 60, 0.5);
+  }
+
+  /* Photo banner overlay */
+  .photo-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%);
   }
 </style>
